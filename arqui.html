@@ -1,0 +1,691 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laboratório de Arquimedes</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #edf3f8;
+  color: #17324b;
+  font: 15px Arial, sans-serif;
+}
+
+header {
+  background: #123f64;
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+
+header h1 { margin: 0 0 7px; }
+
+main {
+  max-width: 1150px;
+  margin: 18px auto;
+  padding: 0 12px;
+  display: grid;
+  grid-template-columns: 290px 1fr;
+  gap: 15px;
+}
+
+.panel {
+  background: white;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 2px 12px #1234;
+}
+
+label {
+  display: block;
+  margin: 14px 0 5px;
+  font-weight: bold;
+}
+
+select, input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #b9c9d5;
+  border-radius: 6px;
+}
+
+input[type=range] { padding: 0; }
+
+button {
+  border: 0;
+  border-radius: 7px;
+  padding: 12px;
+  cursor: pointer;
+  font-weight: bold;
+  color: white;
+  background: #176caa;
+}
+
+button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin-top: 16px;
+}
+
+.actions button { padding: 10px 4px; }
+.actions button:nth-child(2) { background: #8b5a18; }
+.actions button:nth-child(3) { background: #526477; }
+
+.stage svg {
+  width: 100%;
+  max-height: 520px;
+}
+
+.results { grid-column: 1 / -1; }
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.metric {
+  padding: 12px;
+  background: #edf5fa;
+  border-radius: 8px;
+}
+
+.metric small {
+  display: block;
+  color: #496478;
+  margin-bottom: 8px;
+}
+
+.metric strong { font-size: 19px; }
+
+#status {
+  font-size: 18px;
+  font-weight: bold;
+  color: #115b87;
+}
+
+.hint {
+  font-size: 13px;
+  color: #536a79;
+  line-height: 1.5;
+}
+
+@media(max-width:750px) {
+  main { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>Laboratório de Arquimedes</h1>
+  <div>Solte o objeto e observe a água subir!</div>
+</header>
+
+<main>
+
+<section class="panel">
+  <h2>Experimento</h2>
+
+  <label for="material">Material</label>
+  <select id="material">
+    <option value="600">Madeira (600 kg/m³)</option>
+    <option value="920">Gelo (920 kg/m³)</option>
+    <option value="2700">Alumínio (2700 kg/m³)</option>
+    <option value="7800">Ferro (7800 kg/m³)</option>
+    <option value="custom">Personalizado</option>
+  </select>
+
+  <label for="rhoBody">Densidade do corpo (kg/m³)</label>
+  <input id="rhoBody" type="number" min="1"
+         max="20000" value="600">
+
+  <label for="liquid">Líquido</label>
+  <select id="liquid">
+    <option value="1000">Água (1000 kg/m³)</option>
+    <option value="1025">Água salgada (1025 kg/m³)</option>
+    <option value="850">Óleo (850 kg/m³)</option>
+    <option value="custom">Personalizado</option>
+  </select>
+
+  <label for="rhoLiquid">Densidade do líquido (kg/m³)</label>
+  <input id="rhoLiquid" type="number" min="1"
+         max="20000" value="1000">
+
+  <label for="volume">
+    Volume do objeto: <span id="volText">2,0</span> L
+  </label>
+  <input id="volume" type="range"
+         min="0.5" max="10" step="0.5" value="2">
+
+  <div class="actions">
+    <button id="drop">Soltar</button>
+    <button id="pause" disabled>Pausar</button>
+    <button id="reset">Reiniciar</button>
+  </div>
+
+  <p class="hint">
+    Tanque com seção horizontal constante de 0,08 m².
+    A elevação da água depende do volume deslocado.
+    Gravidade: 9,81 m/s².
+  </p>
+</section>
+
+<section class="panel stage">
+  <h2>Tanque e forças</h2>
+
+  <svg id="scene" viewBox="0 0 680 540">
+
+    <defs>
+      <linearGradient id="waterGradient"
+                      x1="0" y1="0" x2="0" y2="1">
+        <stop stop-color="#81d9fa" stop-opacity=".65"/>
+        <stop offset="1" stop-color="#147ab6"
+              stop-opacity=".82"/>
+      </linearGradient>
+
+      <clipPath id="tankClip">
+        <rect x="125" y="70" width="390" height="400"/>
+      </clipPath>
+
+      <marker id="redHead" markerWidth="7"
+              markerHeight="7" refX="5" refY="3"
+              orient="auto">
+        <path d="M0 0 L6 3 L0 6Z" fill="#d93d42"/>
+      </marker>
+
+      <marker id="greenHead" markerWidth="7"
+              markerHeight="7" refX="5" refY="3"
+              orient="auto">
+        <path d="M0 0 L6 3 L0 6Z" fill="#11945a"/>
+      </marker>
+    </defs>
+
+    <!-- Tanque -->
+    <rect x="125" y="70" width="390" height="400"
+          rx="4" fill="#f3faff"
+          stroke="#477c9d" stroke-width="4"/>
+
+    <g clip-path="url(#tankClip)">
+
+      <!-- Água -->
+      <rect id="water" x="127" y="235"
+            width="386" height="235"
+            fill="url(#waterGradient)"/>
+
+      <line id="surface"
+            x1="127" y1="235" x2="513" y2="235"
+            stroke="#148bc4" stroke-width="3"/>
+
+      <!-- Objeto -->
+      <rect id="object" x="280" y="83"
+            width="80" height="80" rx="5"
+            fill="#b78553" stroke="#674d36"
+            stroke-width="3"/>
+
+      <!-- Parte molhada do objeto -->
+      <rect id="submerged" x="280" y="163"
+            width="80" height="0"
+            fill="#164e77" opacity=".32"/>
+    </g>
+
+    <!-- Nível inicial -->
+    <line id="initialLine"
+          x1="125" y1="235" x2="515" y2="235"
+          stroke="#7a8793"
+          stroke-dasharray="6 6"
+          stroke-width="1.5"/>
+
+    <text x="8" y="230" font-size="14"
+          fill="#526777">Nível inicial</text>
+
+    <!-- Vetores -->
+    <g id="vectors">
+      <line id="weightArrow"
+            x1="307" y1="120"
+            x2="307" y2="160"
+            stroke="#d93d42" stroke-width="5"
+            marker-end="url(#redHead)"/>
+
+      <line id="buoyArrow"
+            x1="333" y1="120"
+            x2="333" y2="90"
+            stroke="#11945a" stroke-width="5"
+            marker-end="url(#greenHead)"/>
+    </g>
+
+    <text x="535" y="100" font-size="16"
+          font-weight="bold" fill="#d93d42">
+      ↓ Peso
+    </text>
+
+    <text x="535" y="126" font-size="16"
+          font-weight="bold" fill="#11945a">
+      ↑ Empuxo
+    </text>
+
+    <text id="riseLabel" x="535" y="265"
+          font-size="15" fill="#12689b">
+      Subida: 0,0 cm
+    </text>
+
+  </svg>
+
+  <p id="status">Pronto para soltar o objeto.</p>
+
+  <p class="hint">
+    O peso atua no centro de massa e o empuxo
+    no centro da parte submersa. As setas
+    representam os sentidos e módulos relativos.
+  </p>
+</section>
+
+<section class="panel results">
+  <h2>Medidas em tempo real</h2>
+
+  <div class="metrics">
+    <div class="metric">
+      <small>Peso do objeto</small>
+      <strong id="weight">—</strong>
+    </div>
+
+    <div class="metric">
+      <small>Empuxo</small>
+      <strong id="buoyancy">—</strong>
+    </div>
+
+    <div class="metric">
+      <small>Peso aparente (P − E)</small>
+      <strong id="apparent">—</strong>
+    </div>
+
+    <div class="metric">
+      <small>Volume deslocado</small>
+      <strong id="displaced">—</strong>
+    </div>
+
+    <div class="metric">
+      <small>Volume submerso</small>
+      <strong id="fraction">—</strong>
+    </div>
+
+    <div class="metric">
+      <small>Elevação da água</small>
+      <strong id="rise">—</strong>
+    </div>
+
+    <div class="metric">
+      <small>Força resultante vertical</small>
+      <strong id="net">—</strong>
+    </div>
+
+    <div class="metric">
+      <small>Estado</small>
+      <strong id="state">—</strong>
+    </div>
+  </div>
+
+  <p class="hint">
+    E = ρ(líquido) × V(submerso) × g<br>
+    P = ρ(corpo) × V(corpo) × g<br>
+    Δh = V(submerso) / A
+  </p>
+</section>
+
+</main>
+
+<script>
+"use strict";
+
+const $ = id => document.getElementById(id);
+
+const g = 9.81;
+const A = 0.08;
+const scale = 900;
+const waterBase = 235;
+const tankBottom = 470;
+const side = 80;
+const objectX = 280;
+
+let y = 83;
+let v = 0;
+let running = false;
+let paused = false;
+let last = 0;
+let frame = null;
+let settled = false;
+
+const fmt = (n, d = 2) =>
+  n.toLocaleString("pt-BR", {
+    minimumFractionDigits: d,
+    maximumFractionDigits: d
+  });
+
+function config() {
+  return {
+    rb: Math.max(1, Number($("rhoBody").value) || 1),
+    rl: Math.max(1, Number($("rhoLiquid").value) || 1),
+    vol: Number($("volume").value) / 1000
+  };
+}
+
+function calc() {
+  const {rb, rl, vol} = config();
+
+  let level = waterBase;
+  let sub = 0;
+
+  // Conservação do volume deslocado
+  // Resolve a elevação da superfície
+  // considerando a posição do objeto.
+  const riseMax = vol / A * scale;
+
+  for (let i = 0; i < 30; i++) {
+    const fraction = Math.max(
+      0,
+      Math.min(1, (y + side - level) / side)
+    );
+
+    sub = vol * fraction;
+    const nextLevel = waterBase - sub / A * scale;
+
+    if (Math.abs(nextLevel - level) < 0.00001) {
+      level = nextLevel;
+      break;
+    }
+
+    level = (level + nextLevel) / 2;
+  }
+
+  const fraction = Math.max(
+    0,
+    Math.min(1, (y + side - level) / side)
+  );
+
+  sub = vol * fraction;
+  level = waterBase - sub / A * scale;
+
+  const weight = rb * vol * g;
+  const buoy = rl * sub * g;
+
+  return {
+    rb, rl, vol, level, sub, fraction,
+    weight,
+    buoy,
+    net: buoy - weight,
+    rise: sub / A
+  };
+}
+
+function draw() {
+  const c = calc();
+
+  // Atualiza o nível da água
+  $("water").setAttribute("y", c.level);
+  $("water").setAttribute(
+    "height", tankBottom - c.level
+  );
+
+  $("surface").setAttribute("y1", c.level);
+  $("surface").setAttribute("y2", c.level);
+
+  // Atualiza a posição do objeto
+  $("object").setAttribute("y", y);
+
+  // Mostra a parte submersa
+  const wetTop = Math.max(y, c.level);
+
+  const wetHeight = Math.max(
+    0,
+    Math.min(y + side, tankBottom) - wetTop
+  );
+
+  $("submerged").setAttribute("y", wetTop);
+  $("submerged").setAttribute("height", wetHeight);
+
+  // Vetores das forças
+  const cm = y + side / 2;
+  const cb = wetTop + wetHeight / 2;
+
+  const maxForce = Math.max(
+    c.weight, c.buoy, 0.01
+  );
+
+  const lenW = 18 + 65 * c.weight / maxForce;
+  const lenB = c.buoy > 0
+    ? 18 + 65 * c.buoy / maxForce
+    : 0;
+
+  // Peso: vertical para baixo
+  $("weightArrow").setAttribute("x1", 307);
+  $("weightArrow").setAttribute("x2", 307);
+  $("weightArrow").setAttribute("y1", cm);
+  $("weightArrow").setAttribute("y2", cm + lenW);
+
+  // Empuxo: vertical para cima
+  $("buoyArrow").setAttribute("x1", 333);
+  $("buoyArrow").setAttribute("x2", 333);
+  $("buoyArrow").setAttribute("y1", cb);
+  $("buoyArrow").setAttribute("y2", cb - lenB);
+
+  $("buoyArrow").style.display =
+    c.sub > 0 ? "" : "none";
+
+  // Resultados numéricos
+  $("weight").textContent =
+    fmt(c.weight) + " N";
+
+  $("buoyancy").textContent =
+    fmt(c.buoy) + " N";
+
+  $("apparent").textContent =
+    fmt(c.weight - c.buoy) + " N";
+
+  $("displaced").textContent =
+    fmt(c.sub * 1000) + " L";
+
+  $("fraction").textContent =
+    fmt(c.fraction * 100, 1) + "%";
+
+  $("rise").textContent =
+    fmt(c.rise * 100) + " cm";
+
+  $("riseLabel").textContent =
+    "Subida: " + fmt(c.rise * 100) + " cm";
+
+  $("net").textContent =
+    fmt(c.net) + " N";
+
+  let state = "Em movimento";
+
+  if (!running) {
+    state = "Pronto";
+  } else if (settled) {
+    state = c.rb < c.rl
+      ? "Flutuando"
+      : c.rb > c.rl
+      ? "No fundo"
+      : "Suspenso";
+  }
+
+  $("state").textContent = state;
+
+  return c;
+}
+
+function tick(t) {
+  if (!running || paused) return;
+
+  const dt = Math.min(
+    (t - last) / 1000 || 0,
+    0.035
+  );
+
+  last = t;
+
+  const c = calc();
+
+  // Movimento vertical amortecido
+  const acc = (c.weight - c.buoy) /
+              (c.rb * c.vol);
+
+  v += acc * dt * scale * 0.18;
+  v *= Math.exp(-2.6 * dt);
+
+  y += v * dt;
+
+  const floor = tankBottom - side;
+
+  if (y > floor) {
+    y = floor;
+    v = 0;
+    settled = true;
+  } else if (y < 72) {
+    y = 72;
+    v = 0;
+  }
+
+  const d = calc();
+
+  if (
+    d.rb < d.rl &&
+    Math.abs(d.net) < 0.35 &&
+    Math.abs(v) < 3
+  ) {
+    v = 0;
+    settled = true;
+  }
+
+  if (
+    d.rb === d.rl &&
+    d.fraction >= 0.999 &&
+    Math.abs(v) < 2
+  ) {
+    v = 0;
+    settled = true;
+  }
+
+  const output = draw();
+
+  if (settled) {
+    $("status").textContent =
+      output.rb < output.rl
+      ? "O objeto flutua em equilíbrio."
+      : "O objeto chegou ao fundo ou está em equilíbrio.";
+  } else {
+    $("status").textContent =
+      "O objeto está entrando na água. Observe a elevação do nível.";
+  }
+
+  if (!settled) {
+    frame = requestAnimationFrame(tick);
+  } else {
+    $("pause").disabled = true;
+  }
+}
+
+function stop() {
+  if (frame !== null) {
+    cancelAnimationFrame(frame);
+  }
+
+  frame = null;
+  running = false;
+  paused = false;
+  settled = false;
+  v = 0;
+  last = 0;
+  y = 83;
+
+  $("drop").disabled = false;
+  $("pause").disabled = true;
+  $("pause").textContent = "Pausar";
+
+  $("status").textContent =
+    "Pronto para soltar o objeto.";
+
+  draw();
+}
+
+// Botão Soltar
+$("drop").onclick = () => {
+  if (running) return;
+
+  running = true;
+  paused = false;
+  settled = false;
+  v = 0;
+
+  $("drop").disabled = true;
+  $("pause").disabled = false;
+
+  last = performance.now();
+  frame = requestAnimationFrame(tick);
+};
+
+// Botão Pausar
+$("pause").onclick = () => {
+  if (!running || settled) return;
+
+  paused = !paused;
+
+  $("pause").textContent =
+    paused ? "Continuar" : "Pausar";
+
+  if (!paused) {
+    last = performance.now();
+    frame = requestAnimationFrame(tick);
+  } else if (frame !== null) {
+    cancelAnimationFrame(frame);
+    frame = null;
+  }
+};
+
+// Botão Reiniciar
+$("reset").onclick = () => stop();
+
+// Seleção de materiais e líquidos
+for (const [sel, input] of [
+  ["material", "rhoBody"],
+  ["liquid", "rhoLiquid"]
+]) {
+  $(sel).onchange = () => {
+    if ($(sel).value !== "custom") {
+      $(input).value = $(sel).value;
+    }
+    stop();
+  };
+
+  $(input).oninput = () => {
+    $(sel).value = "custom";
+    stop();
+  };
+}
+
+// Alteração do volume
+$("volume").oninput = () => {
+  $("volText").textContent =
+    fmt(Number($("volume").value), 1);
+
+  stop();
+};
+
+// Inicialização
+draw();
+
+</script>
+</body>
+</html>
